@@ -1,27 +1,42 @@
 import pandas as pd
-from transformers import pipeline
 
-# Load data
 df = pd.read_csv("data/raw/reviews_clean.csv")
 
-# Load sentiment model (DistilBERT)
-sentiment_model = pipeline(
-    "sentiment-analysis",
-    model="distilbert-base-uncased-finetuned-sst-2-english"
-)
+# Simple rule-based sentiment (safe + fast)
+def get_sentiment(text):
+    text = str(text).lower()
+
+    positive_words = ["good", "great", "excellent", "fast", "love", "easy", "nice"]
+    negative_words = ["bad", "slow", "crash", "error", "fail", "problem", "issue"]
+
+    score = 0
+
+    for w in positive_words:
+        if w in text:
+            score += 1
+
+    for w in negative_words:
+        if w in text:
+            score -= 1
+
+    if score > 0:
+        return "POSITIVE", 0.8
+    elif score < 0:
+        return "NEGATIVE", 0.8
+    else:
+        return "NEUTRAL", 0.5
 
 labels = []
 scores = []
 
-for text in df["review"]:
-    result = sentiment_model(str(text))[0]
-    labels.append(result["label"])
-    scores.append(result["score"])
+for r in df["review"]:
+    label, score = get_sentiment(r)
+    labels.append(label)
+    scores.append(score)
 
 df["sentiment_label"] = labels
 df["sentiment_score"] = scores
 
-# Save result
 df.to_csv("data/raw/reviews_with_sentiment.csv", index=False)
 
-print("DONE: Sentiment analysis completed")
+print("DONE: Sentiment completed (no torch version)")
